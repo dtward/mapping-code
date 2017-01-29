@@ -24,20 +24,21 @@
 
 function [X1] = lddmmLandmark(X,Y)
 
-nT = 10;
+nT = 50;
 N = size(X,1);
-Pt = zeros(N,3,nT+1);
-sigmaV = 1.0;
-sigmaY = 1.0;
-
+Pt = zeros(N,size(X,2),nT+1);
+sigmaV = 1;
+sigmaY = 0.01;
+epsilon = 0.00005;
 
 
 % start iterating
-for iter = 1 : 100
+for iter = 1 : 1000
 % flow forward
 Xt = flowXForward(X,Pt,sigmaV);
 E = calculateCost(Xt,Y,Pt,sigmaV,sigmaY);
 disp(['Error : ' num2str(E)])
+
 
 % gradient
 Lambda1 = -(Xt(:,:,end) - Y)/sigmaY^2;
@@ -45,20 +46,25 @@ Lambda1 = -(Xt(:,:,end) - Y)/sigmaY^2;
 Lambdat = flowLambdaBackward(Xt,Pt,Lambda1,sigmaV);
 
 % gradient descent
-epsilon = 0.01;
 Pt = Pt - epsilon*(Pt - Lambdat);
 
+Pt(:,:,1:end-1) - Lambdat(:,:,1:end-1)
+disp(['Error : ' num2str(E)])
+
+
+
 hold off;
-scatter(Xt(:,1,end),Xt(:,2,end))
+for i = 1 : nT+1
+scatter(Xt(:,1,i),Xt(:,2,i))
 hold on;
+end
 scatter(Y(:,1),Y(:,2))
+axis image
 hold off;
 drawnow;
 
 end
 X1 = Xt(:,:,end);
-
-
 
 function Xt = flowXForward(X,Pt,sigmaV)
 nT = size(Pt,3)-1;
@@ -82,16 +88,14 @@ for i = nT : -1 : 1
     if size(Xt,2) == 3
         deltaZ = bsxfun(@minus,Xt(:,3,i), Xt(:,3,i)');  
     end
-
     lipj = Lambdat(:,:,i)*Pt(:,:,i)';
     ljpi = lipj';
     pipj = Pt(:,:,i)*Pt(:,:,i)';
-    scalar = (-lipj-ljpi+pipj);
-
-    Lambdat(:,1,i) = Lambdat(:,1,i+1) - sum( scalar.* (-K.*deltaX/sigmaV^2),2)*dt;
-    Lambdat(:,2,i) = Lambdat(:,2,i+1) - sum( scalar.* (-K.*deltaY/sigmaV^2),2)*dt;
+    scalar = (-lipj-ljpi+pipj).*K*(-1/sigmaV^2);
+    Lambdat(:,1,i) = Lambdat(:,1,i+1) - sum( scalar.*deltaX,2)*dt;
+    Lambdat(:,2,i) = Lambdat(:,2,i+1) - sum( scalar.*deltaY,2)*dt;
     if size(Xt,2) == 3
-        Lambdat(:,3,i) = Lambdat(:,3,i+1) - sum( scalar.* (-K.*deltaZ/sigmaV^2),2)*dt;
+        Lambdat(:,3,i) = Lambdat(:,3,i+1) - sum( scalar.*deltaZ,2)*dt;
     end
 end
 
