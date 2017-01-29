@@ -1,67 +1,45 @@
 % deform landmarks X to match Y
 % cost function is \sum_i |phi X - Y|^2 (l2)
-%
-% derivation of gradient
-% define a state q
-% dynamics
-% qdot_i = sum_j K(q_i,q_j) p_j
-% enforce dynamics with lagrange muliplier
-% gives 
-% C = sum_ij K(q_0^i,q_0^j)p_0^iTp_0^j +  sum_i |q_1^i - y^i|^2 + int sum_i l^iT(qdot^i - sum_j K(q^i,q^j)p^j) dt
-% extremize over q by taking variation dq with dq_0 = 0
-% sum_i 2(q_1^i - y^i)dq^i_1 + int sum_i l^iT(dqdot^i - sum_j D_1K(q^i,q^j)dq^ip^j - D_2 K(q^i,q^j)dq^jp^j ) dt   
-% sum_i 2(q_1^i - y^i)dq^i_1 - int sum_i ldot^iT dq^i dt - int sum_i sum_j l^iT D_1K(q^i,q^j)dq^ip^j + l^jT  D_2 K(q^j,q^i)dq^ip^i ) dt + sum_i l^iT_1 dq_1 
-% sum_i 2(q_1^i - y^i)dq^i_1 - int sum_i ldot^iT dq^i dt - int sum_i sum_j l^iT D_1K(q^i,q^j)dq^ip^j + l^jT  D_1 K(q^i,q^j)dq^ip^i ) dt + sum_i l^iT_1 dq_1 
-% sum_i 2(q_1^i - y^i)dq^i_1 - int sum_i ldot^iT dq^i dt - int sum_i sum_j (l^iTp^j+l^jT p^i)  D_1K(q^i,q^j)dq^i dt + sum_i l^iT_1 dq_1 
-% for this to be zero for all dq we need
-% l_1^i = -2(q_1^i - y^i)
-% ldot^i = sum_j D_1 K^T(q^i,q^j)(l^jT p^i + l^iT p^j)
+% we use hamiltonian method to derive gradient
 
-% now take perturbation with respect to p
-% 2 sum_ij K(q_0^i,q_0^j)p_0^i dp_0^j - int sum_i l^iT sum_j K(q^i,q^j)dp^j dt
-% for this to be zero for all dp we need
-% 2 
+function [X1] = lddmmLandmark(X,Y,sigmaV,sigmaY,nT,epsilon,nIter)
 
-function [X1] = lddmmLandmark(X,Y)
-
-nT = 50;
+% nT = 10;
 N = size(X,1);
 Pt = zeros(N,size(X,2),nT+1);
-sigmaV = 1;
-sigmaY = 0.01;
-epsilon = 0.00005;
+% sigmaV = 1;
+% sigmaY = 0.01;
+% epsilon = 0.00005;
+% nIter = 1000;
 
 
 % start iterating
-for iter = 1 : 1000
+for iter = 1 : nIter
 % flow forward
 Xt = flowXForward(X,Pt,sigmaV);
 E = calculateCost(Xt,Y,Pt,sigmaV,sigmaY);
-disp(['Error : ' num2str(E)])
+fprintf('Iter %d of %d, energy is %g\n',iter,nIter,E);
 
-
-% gradient
+% Endpoint gradient
 Lambda1 = -(Xt(:,:,end) - Y)/sigmaY^2;
+
 % flow backward
 Lambdat = flowLambdaBackward(Xt,Pt,Lambda1,sigmaV);
 
 % gradient descent
 Pt = Pt - epsilon*(Pt - Lambdat);
 
-Pt(:,:,1:end-1) - Lambdat(:,:,1:end-1)
-disp(['Error : ' num2str(E)])
-
-
-
-hold off;
-for i = 1 : nT+1
-scatter(Xt(:,1,i),Xt(:,2,i))
-hold on;
-end
-scatter(Y(:,1),Y(:,2))
-axis image
-hold off;
-drawnow;
+% Pt(:,:,1:end-1) - Lambdat(:,:,1:end-1)
+% disp(['Error : ' num2str(E)])
+% hold off;
+% for i = 1 : nT+1
+% scatter(Xt(:,1,i),Xt(:,2,i))
+% hold on;
+% end
+% scatter(Y(:,1),Y(:,2))
+% axis image
+% hold off;
+% drawnow;
 
 end
 X1 = Xt(:,:,end);
