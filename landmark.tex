@@ -1,0 +1,175 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+
+\usepackage[margin=0.75in]{geometry}
+
+\author{Daniel Tward}
+\title{Landmark matching}
+
+\begin{document}
+\maketitle 
+
+
+\section{Time varying}
+We have landmarks $q_0^i$, we want to flow to match targets $y^i$.  They flow according to dynamics 
+\begin{align*}
+\dot q^i = \sum_j K(q^i,q^j)p^j
+\end{align*}i,
+
+The running cost is
+\begin{align*}
+E = \int \frac12 \sum_{ij} K(q^i,q^j)p^{iT}p^jdt + \frac{1}{2\sigma^2}\sum_i |q_1^i - y^i|^2
+\end{align*}
+
+We enforce dynamics with lagrange multiplier
+\begin{align*}
+E = \int \frac12 \sum_{ij} K(q^i,q^j)p^{iT}p^jdt + \frac{1}{2\sigma^2}\sum_i |q_1^i - y^i|^2  + \int \sum_i l^{iT}(\dot q^i - \sum_j K(q^i,q^j)p^j)dt
+\end{align*}
+
+Take variation with respect to $p$
+\begin{align*}
+\int \sum_{ij} K(q^j,q^i)p^{iT}\delta p^j dt - \int \sum_i \lambda^{iT}\sum_j K(q^i,q^j)\delta p^j dt
+\end{align*}
+For this to be zero for all $\delta p$ we require
+\begin{align*}
+\sum_{i} K(q^i,q^j) p^j = \sum_{i}K(q^i,q^j)\lambda^i
+\end{align*}
+Since $K$ is positive definite this implies $p^i = \lambda^i$.
+
+
+Now we will take a perturbation with respect to $q$
+\begin{align*}
+&\int \frac12 \sum_{ij}D_1K(q^i,q^j)\delta q^i p^{iT}p^j + \frac12 \sum_{ij}D_2K(q^i,q^j)\delta q^j p^{iT}p^j  dt + \sum_i \frac{1}{\sigma^2}(q^i_1 - y^i)^T \delta q^i_1\\
+& + \int \sum_i \l^{iT} \delta \dot q^i - \sum_{ij}\l^{iT}D_1 K(q^i,q^j)\delta q^i p^j - \sum_i \l^{iT}D_2 K(q^i,q^j)\delta q^j p^j dt\\
+&=
+\int \frac12 \sum_{ij}D_1K(q^i,q^j)\delta q^i p^{iT}p^j + \frac12 \sum_{ij}D_2K(q^j,q^i)\delta q^i p^{iT}p^j  dt + \sum_i \frac{1}{\sigma^2}(q^i_1 - y^i)^T \delta q^i_1\\
+& + \int -\sum_i \dot \l^{iT} \delta q^i  - \sum_{ij}\l^{iT}D_1 K(q^i,q^j)\delta q^i p^j - \sum_{ij} \l^{jT}D_2 K(q^j,q^i)\delta q^i p^i dt + \sum_i \l^{iT}_1 \delta q_1 \\
+&=
+\int \frac12 \sum_{ij}D_1K(q^i,q^j)\delta q^i p^{iT}p^j + \frac12 \sum_{ij}D_1K(q^i,q^j)\delta q^i p^{iT}p^j  dt + \sum_i \frac{1}{\sigma^2}(q^i_1 - y^i)^T \delta q^i_1\\
+& + \int -\sum_i \dot \l^{iT} \delta q^i  - \sum_{ij}\l^{iT}D_1 K(q^i,q^j)\delta q^i p^j - \sum_{ij} \l^{jT}D_1 K(q^i,q^j)\delta q^i p^i dt + \sum_i \l^{iT}_1 \delta q_1 \\
+&=
+\int \sum_{ij}D_1K(q^i,q^j)\delta q^i p^{iT}p^j   dt + \sum_i \frac{1}{\sigma^2}(q^i_1 - y^i)^T \delta q^i_1\\
+& + \int -\sum_i \dot \l^{iT} \delta q^i  - \sum_{ij}(\l^{iT} p^j + \l^{jT}p^i)D_1 K(q^i,q^j)\delta q^i dt + \sum_i \l^{iT}_1 \delta q_1 \\
+\end{align*}
+This gives boundary conditions
+\begin{align*}
+l_1^i = -\frac{1}{\sigma^2}(q_1^i - y^i)
+\end{align*}
+And dynamics
+\begin{align*}
+\dot \lambda = \sum_j -(\lambda^{iT}p^j + \lambda^{jT}p^i)D_1K^T(q^i,q^j) + D_1 K^T(q^i,q^j) p^{iT}p^j
+\end{align*}
+
+For gradient descent, we use the iteration
+\begin{align*}
+p \mapsto p - \epsilon(p - \lambda)
+\end{align*}
+\section{Initial momentum landmark matching}
+
+Notice that at the solution we have $p = \lambda$ and the dynamics
+\begin{align*}
+\dot p^i = \sum_j -p^{iT}p^jD_1K^T(q^i,q^j) = -Dv^T(q^i)
+\end{align*}
+
+We devise an algorithm that explicitly makes use of this.  We optimize the cost
+\begin{align*}
+E &= \frac12\sum_{i,j}p_0^{iT}p_0^jK(q^i_0,q^j_0) + \frac{1}{2\sigma^2}\sum_i |q_1^i - y^i|^2 \\
+&+ \int\sum_i \lambda^{qiT}_t(\dot q^i - \sum_j K(q^i,q^j)p^j) + \lambda_t^{piT}(\dot p^i - \sum_j p^{iT}p^j D_1^TK(q^i,q^j)) dt
+\end{align*}
+
+Firs extremizing over the state gives
+\begin{align*}
+&\sum_{i,j}p_0^{iT}p_0^{j}D_1 K(q^i_0,q^j_0)\delta q^i_0 + \frac{1}{\sigma^2}\sum_i (q_1^i - y^i)^T \delta q^i_1\\
+&+ \int \sum_i \lambda^{qiT} \delta \dot q^i dt - \int \sum_{ij} \lambda^{qiT} D_1K(q^i,q^j)\delta q^ip^j dt - \int \sum_{ij} \lambda^{qiT}D_2 K(q^i,q^j)\delta q^j p^jdt \\
+&- \int \sum_{ij} \lambda^{piT} p^{iT}p^j D_1[D_1^T K(q^i,q^j)]\delta q^i dt - \int \sum_{ij} \lambda^{piT}p^{iT}p^j D_2[D_1^T K(q^i,q^j)]\delta q^jdt
+\end{align*}
+Swap dummy variables
+\begin{align*}
+&\sum_{i,j}p_0^{iT}p_0^{j}D_1 K(q^i_0,q^j_0)\delta q^i_0 + \frac{1}{\sigma^2}\sum_i (q_1^i - y^i)^T \delta q^i_1\\
+&+ \int \sum_i \lambda^{qiT} \delta \dot q^i dt - \int \sum_{ij} \lambda^{qiT} D_1K(q^i,q^j)\delta q^ip^j dt - \int \sum_{ij} \lambda^{qjT}D_2 K(q^j,q^i)\delta q^i p^idt \\
+& - \int \sum_{ij} \lambda^{piT} p^{iT}p^j D_1[D_1^T K(q^i,q^j)]\delta q^i dt - \int \sum_{ij} \lambda^{pjT} p^{jT}p^i D_2[D_1^T K(q^j,q^i)]\delta q^idt
+\end{align*}
+Swap derivatives for kernel order
+\begin{align*}
+&\sum_{i,j}p_0^{iT}p_0^{j}D_1 K(q^i_0,q^j_0)\delta q^i_0 + \frac{1}{\sigma^2}\sum_i (q_1^i - y^i)^T \delta q^i_1\\
+&+ \int \sum_i \lambda^{qiT} \delta \dot q^i dt - \int \sum_{ij} \lambda^{qiT} D_1K(q^i,q^j)\delta q^ip^j dt - \int \sum_{ij} \lambda^{qjT}D_1 K(q^i,q^j)\delta q^i p^idt \\
+& - \int \sum_{ij} \lambda^{piT} p^{iT}p^j D_1[D_1^T K(q^i,q^j)]\delta q^i dt - \int \sum_{ij} \lambda^{pjT} p^{jT}p^i D_1[D_2^T K(q^i,q^j)]\delta q^idt
+\end{align*}
+Combine like terms
+\begin{align*}
+&\sum_{i,j}p_0^{iT}p_0^{j}D_1 K(q^i_0,q^j_0)\delta q^i_0 + \frac{1}{\sigma^2}\sum_i (q_1^i - y^i)^T \delta q^i_1\\
+&+ \int \sum_i \lambda^{qiT} \delta \dot q^i dt - \int \sum_{ij} (\lambda^{qiT}p^j + \lambda^{qj^T}p^i) D_1K(q^i,q^j)\delta q^i dt  \\
+& - \int \sum_{ij} p^{iT}p^j ( \lambda^{piT}  D_1[D_1^T K(q^i,q^j)] + \lambda^{pjT}  D_1[D_2^T K(q^i,q^j) )\delta q^i dt 
+\end{align*}
+Apply integration by parts
+\begin{align*}
+&\sum_{i,j}p_0^{iT}p_0^{j}D_1 K(q^i_0,q^j_0)\delta q^i_0 + \frac{1}{\sigma^2}\sum_i (q_1^i - y^i)^T \delta q^i_1\\
+&- \int \sum_i \dot \lambda^{qiT} \delta  q^i dt + \sum_i \lambda^{qiT}_1\delta q^i_1  - \sum_i \lambda^{qiT}_0\delta q^i_0 - \int \sum_{ij} (\lambda^{qiT}p^j + \lambda^{qj^T}p^i) D_1K(q^i,q^j)\delta q^i dt  \\
+& - \int \sum_{ij} p^{iT}p^j ( \lambda^{piT}  D_1[D_1^T K(q^i,q^j)] + \lambda^{pjT}  D_1[D_2^T K(q^i,q^j) )\delta q^i dt 
+\end{align*}
+Note that $\delta q_0 = 0$ (fixed template).
+
+This gives boundary conditions
+\begin{align*}
+\lambda_1^{qi} &= \frac{1}{\sigma^2}(q_1^i - y^i) \\
+\lambda_1^{pi} &= 0\\
+%\lambda_0^{qi} &= \sum_j p_0^{iT}p_0^j D_1 K^T(q_0^i,q_0^j) = -\dot p_0
+\end{align*}
+And it gives dynamics
+\begin{align*}
+\dot \lambda^{qi} &= \sum_j (\lambda^{qiT}p^j + \lambda^{qjT}p^i)D_1 K^T(q^i,q^j) + p^{iT}p^j(D_1^TD_1K(q^i,q^j)\lambda^{pi} + D_1^TD_2 K(q^i,q^j)\lambda^{pj})
+\end{align*}
+
+Now we take a perturbation with respect to $p$.
+\begin{align*}
+&\sum_{ij}p_0^j\delta p_0^i K(q_0^i,q_0^j) \\
+& - \int \sum_{ij} \lambda^{qiT}K(q^i,q^j)\delta p^j dt \\
+& + \int \sum_i \lambda^{piT}\delta \dot p^idt - \int \sum_{ij}\lambda^{piT}\delta p^{iT}p^jD_1^TK(q^i,q^j)dt
+- \int \sum_{ij}\lambda^{piT} p^{iT}\delta p^jD_1^TK(q^i,q^j)dt
+\end{align*}
+Swap dummy variables
+\begin{align*}
+&\sum_{ij}p_0^j\delta p_0^i K(q_0^i,q_0^j) \\
+& - \int \sum_{ij} \lambda^{qiT}K(q^i,q^j)\delta p^j dt \\
+& + \int \sum_i \lambda^{piT}\delta \dot p^idt - \int \sum_{ij}\lambda^{piT}\delta p^{iT}p^jD_1^TK(q^i,q^j)dt
+- \int \sum_{ij}\lambda^{pjT} p^{jT}\delta p^iD_1^TK(q^j,q^i)dt
+\end{align*}
+Change derivatives
+\begin{align*}
+&\sum_{ij}p_0^j\delta p_0^i K(q_0^i,q_0^j) \\
+& - \int \sum_{ij} \lambda^{qiT}K(q^i,q^j)\delta p^j dt \\
+& + \int \sum_i \lambda^{piT}\delta \dot p^idt - \int \sum_{ij}\lambda^{piT}\delta p^{iT}p^jD_1^TK(q^i,q^j)dt
+- \int \sum_{ij}\lambda^{pjT} p^{jT}\delta p^iD_2^TK(q^i,q^j)dt
+\end{align*}
+Collect like terms
+\begin{align*}
+&\sum_{ij}p_0^j\delta p_0^i K(q_0^i,q_0^j) \\
+& - \int \sum_{ij} \lambda^{qiT}K(q^i,q^j)\delta p^j dt \\
+& + \int \sum_i \lambda^{piT}\delta \dot p^idt - \int \sum_{ij}(\lambda^{piT}D_1^TK(q^i,q^j) + \lambda^{pjT}D_2^TK(q^i,q^j))p^{jT}\delta p^{i}dt
+\end{align*}
+Integration by parts
+\begin{align*}
+&\sum_{ij}p_0^j\delta p_0^i K(q_0^i,q_0^j) \\
+& - \int \sum_{ij} \lambda^{qiT}K(q^i,q^j)\delta p^j dt \\
+& - \int \sum_i \dot \lambda^{piT}\delta p^idt + \sum_{i}  \lambda^{piT}_1 \delta p^i_1 - \sum_{i} \lambda^{piT}_0 \delta p^i_0 - \int \sum_{ij}(\lambda^{piT}D_1^TK(q^i,q^j) + \lambda^{pjT}D_2^TK(q^i,q^j))p^{jT}\delta p^{i}dt
+\end{align*}
+This gives boundary condition
+\begin{align*}
+\lambda^{p}_1 &= 0\\
+\lambda^p_0 &= \sum_j K(q_0^i,q_0^j)p_j
+\end{align*}
+
+The gradient is then
+\begin{align*}
+p_0^i \mapsto p_0^i - K^{-1}\epsilon (\sum_j K(q_0^i,q_0^j)p_0^j - \lambda^p_0)
+\end{align*}
+
+And we have dynamics
+\begin{align*}
+\dot \lambda^p &= \sum_j -\lambda^{qi}K(q^i,q^j) - p^j (D_1 K(q^i,q^j)\lambda^{pi} + D_2K(q^i,q^j)\lambda^{pj})
+\end{align*}
+
+\section{Image matching}
+
+\section{Image matching with points}
+\end{document}
