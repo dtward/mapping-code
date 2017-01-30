@@ -41,3 +41,6 @@ surf(xx1,yy1,xx1*0-1,'facecolor','none','linewidth',2)
 legend('template','deformed','target','location','best')
 axis image
 axis off
+
+% try the same test
+[X1, Pt] = lddmmInitialMomentumLandmark(X, Y, sigmaV, sigmaY, nT,epsilon, nIter);
