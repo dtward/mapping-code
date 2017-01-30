@@ -2,7 +2,7 @@
 % cost function is \sum_i |phi X - Y|^2 (l2)
 % we use hamiltonian method to derive gradient
 
-function [X1] = lddmmLandmark(X,Y,sigmaV,sigmaY,nT,epsilon,nIter)
+function [X1,Pt] = lddmmLandmark(X,Y,sigmaV,sigmaY,nT,epsilon,nIter)
 
 % nT = 10;
 N = size(X,1);
