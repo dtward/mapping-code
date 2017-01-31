@@ -14,7 +14,7 @@
 We have landmarks $q_0^i$, we want to flow to match targets $y^i$.  They flow according to dynamics 
 \begin{align*}
 \dot q^i = \sum_j K(q^i,q^j)p^j
-\end{align*}i,
+\end{align*}
 
 The running cost is
 \begin{align*}
@@ -170,6 +170,68 @@ And we have dynamics
 \end{align*}
 
 \section{Image matching}
+We have an image $I$ and velocity field $v$.  we want to match to an image $J$.  we enforce optical flow dynamics.
+\begin{align*}
+E &= \int \frac12 \|v_t\|^2_V dt + \frac{1}{2\sigma^2}\|I_1-J\|^2_{L_2} + \\
+&+ \int \lambda^T(\dot I + DI v)dt
+\end{align*}  
+
+The norm is defined through a differential operator $L$
+\begin{align*}
+\|v\|^2_V = \|L v\|^2_{L_2} = \int [(L^*L)v]^t(x) v(x) dx
+\end{align*}
+
+Take a variation with respect to $I$
+\begin{align*}
+&\int \frac{1}{\sigma^2}(I_1(x) - J(x))^T\delta I_1(x)dx + \int \int \lambda^T (\delta \dot I + D\delta I v) dx dt\\
+&=\int\frac{1}{\sigma^2}(I_1(x) - J(x))^T\delta I_1(x)dx + \int \int \lambda^T \delta \dot I dx dt + \int  \int \lambda^T D\delta I v dx dt\\
+&= \int \frac{1}{\sigma^2}(I_1(x) - J(x))^T\delta I_1(x)dx - \int \int \dot \lambda^T \delta  I dx dt + \int \lambda^T_1 \delta I_1 dx - \int \lambda^T_0 \delta I_0 dx  - \int\int  \text{div} [\lambda^T v]   \delta I dx dt
+\end{align*}
+This gives boundary condition
+\begin{align*}
+\lambda_1 = -\frac{1}{\sigma^2}(I_1 - J)
+\end{align*}
+And dynamics
+\begin{align*}
+\dot \lambda = -\text{div}[\lambda^T v]
+\end{align*}
+Note that the solution to this is composition with diffeomorphism times Jacobian.
+
+Taking a perturbation with respect to $v$ gives
+\begin{align*}
+\int \int (L^*L v)^T\delta v dx dt + \int  \lambda^T DI \delta vdt
+\end{align*}
+This gives a differential
+\begin{align*}
+(L^*L v) +  DI^T \lambda 
+\end{align*}
+
+We use this in our gradient descent algorithm.
+
+At the solution we will have
+\begin{align*}
+v = -(L^*L) DI^T \lambda
+\end{align*}
+Taking derivative
+\begin{align*}
+\frac{d}{dt}(L^*L)v &= -D\dot I^T \lambda - DI^T\dot \lambda\\
+&=-D[-DI v]^T\lambda + DI^T \text{div}[\lambda^T v]\\
+&=v^T DDI \lambda + DI Dv \lambda + DI^T \text{div}[\lambda^T v]\\
+\end{align*}
+hmmmmmmm
+
+Let's check this with components
+\begin{align*}
+\frac{d}{dt} [-DI^T \lambda]_i &= \frac{d}{dt} \sum_j [-DI_j \lambda_j]_i\\
+&= \frac{d}{dt} \sum_j -\partial_i I_j \lambda_j\\
+&=  \sum_j -\partial_i \frac{d}{dt}I_j \lambda_j -\sum_j \partial_i I_j \frac{d}{dt}\lambda_j\\
+&=  \sum_j\sum_k \partial_i \partial_k I_j v_k \lambda_j + \sum_j \sum_k \partial_i I_j \partial_k (v_k \lambda_j) \\
+&=  \sum_j\sum_k \partial_i \partial_k I_j v_k \lambda_j + \sum_j \sum_k \partial_i I_j \partial_k v_k \lambda_j + \sum_j \sum_k \partial_i I_j  v_k \partial_k \lambda_j  \\
+&=  \sum_j \lambda_j H I_j v + \text{div}[v] DI^T \lambda + ...
+\end{align*}
+Where $H$ is Hessian operator.
+
+\section{Initial momentum image matching}
 
 \section{Image matching with points}
 \end{document}
